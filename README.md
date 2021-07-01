@@ -11,6 +11,12 @@ https://data-flair.training/blogs/data-science-r-movie-recommendation/
 https://sifter.org/~simon/journal/20061211.html
 
 
+### Intro to sparse matrix formats
+https://www.gormanalysis.com/blog/sparse-matrix-storage-formats/
+https://www.gormanalysis.com/blog/sparse-matrix-construction-and-use-in-r/
+
+
+
 https://www.data-mania.com/blog/tag/how-to-build-a-recommendation-engine-in-r/
 
 

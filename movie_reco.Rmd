@@ -1,0 +1,681 @@
+---
+title: "movie_recommendation"
+author: "Sean Cranston"
+output: 
+  html_document
+---
+
+# 1 Introduction
+
+## 1.1 Recommendation engines, What are they good for?
+
+Recommendation engines are a subclass of information filtering. The goal of a recommendation engine is to assist the user - like a consumer - in discovering information that is relevant to them. For example, <http://google.com> uses a recommendation engine. After you search something, those links are the top recommendations that the algorithm gives to the user. And Recommendations are not just for Google. They can be found in online marketing, online dating, book and music recommendations, and a plethora of other areas. For this article we will be focusing on movie recommendations. For instance, think of Netflix. How does it recommend its large movie base to its even larger costumer base? This will be the question we investigate throughout this article.
+
+## 1.2 Difference between algorithms
+
+For this study we will be looking at 9 different recommendation algorithms. they are (along with a brief description):
+
+* __User-Based Content filtering Cosine(UBCF_C):__ Items are recommended assuming that similar users will rate items similarly. Based on a Cosine similarity matrix from a matrix that has movies as columns and users as rows.
+
+* __Item-Based Content Filtering Cosine(IBCF_C):__ Items are recommended assuming that they will prefer other items which are similar to items they like. Based on the same matrix from UBCD_C.
+
+* __User-Based Content filtering Pearson(UBCF_P):__ The idea with UBCF_P is the same as UBCF_C. But instead of using the cosine similarity matrix, we use the Pearson similarity matrix.
+
+* __Item-Based Content Filtering Pearson(IBCF_P):__ The idea with IBCF_P is the same as IBCF_C. But instead of using the cosine similarity matrix, we use the Pearson similarity matrix.
+
+* __Singular Value Decomposition (SVD):__ SVD is a factorization of a real matrix. It then extract the latent factors and used the latent factor matrix to make recommendations.
+
+* __Popular:__ This method simply recommends based on item/movie popularity.
+
+* __Alternating Least Squares Explicit (ALS):__ Recommends for explicit ratings based on latent factors, calculated by alternating least squares algorithm.
+
+* __Alternating Least Squares Implicit (ALS_implicit):__ Recommends for implicit data based on latent factors, calculated by alternating least squares algorithm.
+
+* __Random:__ Produce random recommendations (so we have a baseline to judge the other models with).
+
+
+# 2 Data description
+
+We obtained our data from IBMT, Which is an online database of information related to television programs, home videos, video games, and more importantly for us  films. The data can be obtained from <https://drive.google.com/file/d/1Dn1BZD3YxgBQJSIjbfNnmCFlDW2jdQGD/view>. In there are two data frames. One is a key comprising of a movie ID and the title of the unique movie that goes to that ID including the genre associated with the movie. The other data frame is the data we will be doing our analysis on, which comprises of userID, MovieID and the rating the user gave to the movie. 
+
+# 3 Data preprocessing
+
+In our analysis we will make use of 4 packages *tidyverse, data.table, reshape2,lobstr, and recommenderlab*. 
+
+
+```{r setup}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)                   
+library(data.table)
+library(reshape2)
+library(recommenderlab)
+library(lobstr)
+```
+
+## 3.1 Data importing
+
+First we must download the data from <https://drive.google.com/file/d/1Dn1BZD3YxgBQJSIjbfNnmCFlDW2jdQGD/view> and save it to a desired location and put the full address in quotes. Or we could save the csv files to our working directory as done below.
+
+```{r Data_import}
+movie_data <- read_csv("movies.csv",
+                       col_types = cols(
+                         movieId = col_double(),
+                         title = col_character(),
+                         genres = col_character()
+                       ))
+head(movie_data)
+rating_data <- read_csv("ratings.csv",
+                        col_types = cols(
+                          userId = col_double(),
+                          movieId = col_double(),
+                          rating = col_double(),
+                          timestamp = col_double()
+                        ))
+head(rating_data)
+```
+
+
+## 3.2 cleaning genre matrix
+
+In this code chunk we want to clean the `movie_data` data frame. First we need to find all the different genres in our data set and put it into a vector string. We will use this vector to split the different genres for the same movies. From there we will create a new matrix called `genre` with column names labeled with the vector of genres. Then we will put `genre` in a for loop and indicate with a `1` whether a movie has a specific genre. Lastly we will bind the movies with the `genre` matrix for an easy reference. 
+
+```{r genre_matrix}
+# different genres
+names_genre <- c("Action", "Adventure", "Animation", "Children", "Comedy", "Crime",
+           "Documentary", "Drama", "Fantasy", "Film-Noir", "Horror", "Musical", 
+           "Mystery","Romance", "Sci-Fi", "Thriller", "War", "Western") 
+
+# split different genres for the same movie
+list_genre <- str_split(movie_data$genres, "[|]")
+head(list_genre)
+
+# create genre matrix
+genre = matrix(0, nrow(movie_data), ncol = length(names_genre)) %>% 
+    `colnames<-`(names_genre) 
+head(as_tibble(genre))
+    
+# fill genre matrix with 1 if the movie has that genre
+for (row in 1:nrow(genre)) {
+    for (col in 1:ncol(genre)) {
+        genre[row,col] = ifelse(any(names_genre[col] == list_genre[[row]]), 1, 0)
+    }
+}
+
+genre = as.data.frame(genre)
+str(genre)
+
+SearchMatrix <- cbind(movie_data[,1:2], genre[])
+head(SearchMatrix, 10)
+```
+
+So from here we have a matrix that has the movie and the genre as variables. A better to have a matrix for computations.
+
+## 3.3 Cleaning rating matrix
+
+As of right now we have our `rating_data` in the format of where each row comprises of a user, movie and a rating. `rating_data` also contains a timestamp column, but we will ignore that for this analysis. What we want is the data to be in the format where each row is a user, each column is a movie, and the entry for each user movie pair is a rating. In order to accomplish this we use *reshape2* `dcast()` function. Next we delete the userID column since the row index is the same number as that column. From here we have a huge matrix with 668 rows (users) and 10325 movies. Note that most of the rating entries are also NA (not rated), we will show this is the case in our data visualization section, though it can be see by the size of the different matrices. 
+
+```{r rating_matrix}
+# change to user vs movie matrix with rating as the entry
+ratingMatrix <- reshape2::dcast(rating_data, 
+                                userId~movieId, 
+                                value.var = "rating", 
+                                na.rm=FALSE) %>% 
+    select(-c('userId')) %>% # same as row index, just taking up space
+    as.matrix() %>% #needs to be matrix to convert to sparse matrix
+    as(.,"realRatingMatrix") 
+
+# size of rating_data (can't really use this to make a predicting model)
+obj_size(rating_data)
+
+# size of the rating matrix when not in sparse format
+obj_size(rating_data %>% 
+           dcast(userId~movieId,value.var = "rating",na.rm=F) %>% 
+           select(-c('userId')) %>% 
+           as.matrix())
+
+#size of the sparse matrix
+obj_size(ratingMatrix)
+
+#structure of our sparse matrix
+str(ratingMatrix)
+
+#other representations of ratinMatrix
+dim(ratingMatrix)
+getRatingMatrix(ratingMatrix) %>% head()
+summary(movie_ratings@data) %>% head()
+#as(ratingMatrix,"list") %>% head()
+```
+
+Note that our `ratingMatrix` is of class s4 which just means it has slots (those are the what the @ are in `str(ratingMatrix)`. For more information I welcome you to read <https://adv-r.hadley.nz/s4.html?q=s4#s4> which does a very good job at describing what its purpose in object orientating programming. Note that putting our `ratingMatrix` reduces the size of our object by (55,838,040-1,968,424)/55,838,040 or `r (55838040-1968424)/55838040`%. Which makes storing and using are data frame much more efficient. 
+
+# 4 Data Visualization
+
+## 4.1 How many unique users/movies
+
+unique users: `r dim(ratingMatrix)[1]`
+
+unique movies: `r dim(ratingMatrix)[2]`
+
+## 4.2 similar matrix of 100 users based on users
+
+```{r}
+similarity_mat <- similarity(ratingMatrix[1:100 ], #get 100 users 
+                             method = "cosine",
+                             which = "users") %>%  #similar based on user
+  as.matrix()
+image(similarity_mat, main = "User's Similarities")
+
+```
+
+## 4.3 similar matrix of 100 users based on item
+
+```{r}
+movie_similarity <- similarity(ratingMatrix[, 1:100],
+                               method = "cosine",
+                               which = "items") %>%  #similar based on movie
+    as.matrix()
+image(movie_similarity, main = "Movies similarity")
+```
+
+## 4.4 distribution of ratings
+
+```{r}
+table_of_ratings <- as.vector(ratingMatrix@data) %>% 
+    table()
+table_of_ratings
+
+ratings <- table_of_ratings %>% as.data.frame()
+# with non rating movies
+ggplot(ratings,
+       aes(x = ., y = Freq)) +
+  geom_col()
+#only with rated movies
+ggplot(ratings[-c(1),],
+       aes(x = ., y = Freq)) +
+  geom_col()
+```
+
+## 4.5 Most Popular Movies
+
+
+```{r}
+table_view <- ratingMatrix %>% 
+  colCounts() %>% 
+  data.frame(movie = names(.),
+             views = .) %>% 
+  arrange(desc(views)) %>% 
+  mutate(title = NA)
+for (index in 1:10325){ #add title to table_views
+  table_view[index,3] <- as.character(
+    subset(movie_data,
+           movie_data$movieId == table_view[index,1])$title)
+}
+table_view[1:6,]
+
+ggplot(table_view[1:6,], aes(x = title, y = views))+
+    geom_bar( stat="identity",fill = 'steelblue') +
+    geom_text(aes(label=views), vjust=-0.3, size=3.5) +
+    theme_bw()+
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    ggtitle("Total Views of the Top Films")+
+    ylim(0, 350)
+```
+
+
+
+## 4.6 Heatmap of first 25 rows and columns
+```{r}
+# Heatmap of movie ratings
+image(ratingMatrix[1:25,1:25], 
+      axes = FALSE, 
+      main = "Heatmap of the first 25 rows and 25 columns")
+
+```
+
+# 5 Data Preparation
+
+As we could see from section 4.4, there are many unrated movies by users. To make computations easier it is best practice to pick the movies and users with a certain threshold to be used in our model. For instance if a movie only has one rating it would be hard to recommend that movie to others. likewise if a user only rates one movie it would be hard to build a profile for that user. For those reasons we make it a requirement for our data that each user must rate more than 50 movies and each movie we include in our data set will need to be rated by more than 50 people
+
+## 5.1 reducing `ratingMatrix`
+
+We reduce our matrix by getting rid of the users that rated fewer that 50 movies and movies that were rated by fewer than 50 users.
+
+```{r}
+movie_ratings <- ratingMatrix[rowCounts(ratingMatrix) > 50,
+                              colCounts(ratingMatrix) > 50]
+dim(movie_ratings)
+dim(ratingMatrix) #got rid of a lot of movies
+```
+
+## 5.2 visualizing reduced matrix
+From the above output of `movie_ratings`, we observe that there are 420 users and 447 films as opposed to the previous 668 users and 10325 films. We can now observe our matrix of relevant users as follows 
+
+```{r}
+minimum_movies<- quantile(rowCounts(movie_ratings), 0.98)
+# 98th percentile of how many movies a user rated
+minimum_users <- quantile(colCounts(movie_ratings), 0.98)
+image(movie_ratings[rowCounts(movie_ratings) > minimum_movies,
+                    #we only want users that rated more movies than the lower 98%
+                    colCounts(movie_ratings) > minimum_users],
+      main = "Heatmap of the top users and movies")
+```
+
+Where we are looking at the users how rated the most movies vs the movies that where rated the most.
+
+Next we can look at the distribution of the average rating per user.
+
+```{r}
+average_ratings <- rowMeans(movie_ratings)
+qplot(average_ratings, fill=I("steelblue"), col=I("red")) +
+    ggtitle("Distribution of the average rating per user")
+```
+
+## 5.3 Data Normalization
+
+We want to have normalized data because not everyone rates the same way. For example, we could have a happy user who rates all movies between 4 and 5 stars. Compared to a mean user who might never rate a movie higher than a 3. We want to normalize the ratings by row/user to eliminate this rating bias.
+
+```{r}
+normalized_ratings <- normalize(movie_ratings)
+sum(rowMeans(normalized_ratings) > 0.00001)
+
+image(normalized_ratings[rowCounts(normalized_ratings) > minimum_movies,
+                         colCounts(normalized_ratings) > minimum_users],
+      main = "Normalized Ratings of the Top Users")
+
+```
+
+## 5.4 Data Binarization
+
+Instead of normalizing the data we could pick our own threshold to determine which movie gets a 0 or 1. For instance, we could set a threshold at 3 such that when a movie is rated a 3 or lower it gets a new rating of 0 and if higher than 3 it gets a new rating of 1.
+
+```{r}
+binary_minimum_movies <- quantile(rowCounts(movie_ratings), 0.95)
+#I think they changed this to .95 so their would be more white spaces
+binary_minimum_users <- quantile(colCounts(movie_ratings), 0.95)
+#movies_watched <- binarize(movie_ratings, minRating = 1)
+good_rated_films <- binarize(movie_ratings, minRating = 3)
+image(good_rated_films[rowCounts(movie_ratings) > binary_minimum_movies,
+                       colCounts(movie_ratings) > binary_minimum_users],
+      main = "Heatmap of the top users and movies")
+```
+
+## 5.5 Quick Note
+
+It is best to use Normalization and binarization together. That is, we want to normalize each row and then binarize the data by row. However, the package *recommenderlab* does this for us so we don't need to worry about writing the code.
+
+# 6 adjusting parameters/options in *recommenderlab*
+
+```{r model_options}
+# Model options
+recommendation_model <- recommenderRegistry$get_entries(
+  dataType = "realRatingMatrix")
+names(recommendation_model)
+
+#list of model types and description
+lapply(recommendation_model, "[[", "description") 
+
+#different parameters for each model
+# recommendation_model$IBCF_realRatingMatrix$parameters
+# recommenderRegistry$get_entries(dataType = "realRatingMatrix")
+```
+
+# 7 setup scheme
+
+We will be using ten fold cross validation. where the data is split into 3 sub data frames, and then each sub data frame is used to calculate a model. Then the final model is averaged by all the models from each sub data frame. 
+
+```{r}
+e <-  evaluationScheme(movie_ratings, #evaluate will normalize for us
+                       method="cross", 
+                       k = 3,#3 fold cross validation
+                       given=3, 
+                       goodRating=3)#>= 0 is a good rating for normalized data
+e
+```
+
+# 8 Model Parameter Optimization
+
+For each model the following parameters will be optimized:
+
+Model | # of Recommendations | Parameter | Method
+-|-|-|-
+IBCF | 1,5,10,15,20,25 | Similar Items (k): 1,5,10,20,30,40 | Cosine, Pearson
+UBCF | 1,5,10,15,20,25 | Nearest Neighbors (nn): 1,5,10,20,30,40 | Cosine, Pearson
+SVD | 1,5,10,15,20,25 | Item Subset (k): 1,5,10,20,30,40,100 | NA
+ALS | 1,5,10,15,20,25 | Latent Factors (k): 1,5,10,20,30,40 | Implicit, Explicit
+Popular| 1,5,10,15,20,25 | | NA
+
+## 8.1 Item Based Content Filtering (Cosine and Pearson)
+
+For the Cosine method we will use k = 40 since it has the greatest area under the curve. Then for the Pearson method we will use k = 30 since it is consistently one of the best models in the ROC curve and the precision recall curve.
+
+```{r}
+#IBCF Cosine
+vector_k <- c(1, 5, 10, 20, 30, 40)
+models_to_evaluate <- lapply(vector_k, function(k){
+  list(name = "IBCF", param = list(method = "Cosine", k = k))
+})
+names(models_to_evaluate) <- paste0("IBCF_k_", vector_k)
+
+n_recommendations <- c(1, 5, 10, 15, 20, 25)
+list_results <- evaluate(x = e, method = models_to_evaluate, n = n_recommendations)
+plot(list_results, annotate = 1, legend = "topleft")
+title("ROC curve IBCF-Cosine")
+plot(list_results, "prec/rec", annotate = 1, legend = "bottomright")
+title("Precision-recall IBCF-Cosine")
+
+#IBCF Pearson
+models_to_evaluate <- lapply(vector_k, function(k){
+  list(name = "IBCF", param = list(method = "Pearson", k = k))
+})
+names(models_to_evaluate) <- paste0("IBCF_k_", vector_k)
+
+n_recommendations <- c(1, 5, 10, 15, 20, 25)
+list_results <- evaluate(x = e, method = models_to_evaluate, n = n_recommendations)
+
+plot(list_results, annotate = 1, legend = "topleft")
+title("ROC curve IBCF-Pearson")
+plot(list_results, "prec/rec", annotate = 1, legend = "bottomright")
+title("Precision-recall IBCF-Pearson")
+```
+
+
+## 8.2 User Based Content Filtering (Cosine and Pearson)
+
+It is clear that UBCF with the Cosine similarity matrix is at its best with our data when nn = 1.
+
+```{r errors}
+#UBCF Cosine
+vector_k <- c(1, 5, 10, 20, 30, 40)
+models_to_evaluate <- lapply(vector_k, function(k){
+  list(name = "UBCF", param = list(method = "Cosine", nn = k))
+})
+names(models_to_evaluate) <- paste0("UBCF_nn_", vector_k)
+
+n_recommendations <- c(1, 5, 10, 15, 20, 25)
+list_results <- evaluate(x = e, method = models_to_evaluate, n = n_recommendations)
+
+plot(list_results, annotate = 1, legend = "topleft")
+title("ROC curve UBCF-Cosine")
+plot(list_results, "prec/rec", annotate = 1, legend = "bottomright")
+title("Precision-recall IBCF-Cosine")
+
+#UBCF Pearson
+models_to_evaluate <- lapply(vector_k, function(k){
+  list(name = "UBCF", param = list(method = "pearson", nn = k))
+})
+names(models_to_evaluate) <- paste0("UBCF_nn_", vector_k)
+
+n_recommendations <- c(1, 5, 10, 15, 20, 25)
+list_results <- evaluate(x = e, method = models_to_evaluate, n = n_recommendations)
+
+plot(list_results, annotate = 1, legend = "topleft")
+title("ROC curve UBCF-Pearson")
+plot(list_results, "prec/rec", annotate = 1, legend = "bottomright")
+title("Precision-recall UBCF-Pearson")
+```
+
+## 8.3 Singular Value Decomposition
+
+It appears that when k = 10, or we have 10 item subsets, SVD is at its best.
+
+```{r}
+#SVD
+vector_k <- c(1, 5, 10, 20, 30, 40, 100)
+models_to_evaluate <- lapply(vector_k, function(k){
+  list(name = "SVD", param = list(k = k))
+})
+names(models_to_evaluate) <- paste0("SVD_k_", vector_k)
+
+n_recommendations <- c(1, 5, 10, 15, 20, 25)
+
+list_results <- evaluate(x = e, method = models_to_evaluate, n = n_recommendations)
+
+plot(list_results, annotate = 1, legend = "topleft")
+title("ROC curve SVD")
+plot(list_results, "prec/rec", annotate = 1, legend = "bottomright")
+title("Precision-recall SVD")
+```
+
+## 8.4 Alternating Least Squares
+
+When n = 40, ALS performs its best.
+
+```{r}
+#ALS
+vector_k <- c(1, 5, 10, 20, 30, 40)
+models_to_evaluate <- lapply(vector_k, function(k){
+  list(name = "ALS", param = list(n_factors = k))
+})
+names(models_to_evaluate) <- paste0("ALS_n_", vector_k)
+
+n_recommendations <- c(1, 5, 10, 15, 20, 25)
+list_results <- evaluate(x = e, method = models_to_evaluate, n = n_recommendations)
+
+plot(list_results, annotate = 1, legend = "topleft")
+title("ROC curve ALS")
+plot(list_results, "prec/rec", annotate = 1, legend = "bottomright")
+title("Precision-recall ALS")
+```
+
+## 8.5 Popular
+
+The Popular algorithm doesn't have any parameters to compare, so there is no code and graphs to show here.
+
+# 9 Model Comparison
+
+## 9.1 Models with parameters
+
+```{r}
+Models_to_be <- list("UBCF_C" = list(name = "UBCF", 
+                                     param = list(method = "cosine",
+                                                  nn = 1)),
+                     "IBCF_C" = list(name = "IBCF",
+                                     param = list(method = "cosine",
+                                                  k = 40)),
+                     "UBCF_P" = list(name = "UBCF",#not working :(
+                                     param = list(method = "Pearson")),
+                     "IBCF_P" = list(name = "IBCF",
+                                     param = list(method = "Pearson",
+                                                  k = 30)),
+                     "SVD" = list(name = "SVD",
+                                  param = list(k = 10)),
+                     "rand" = list(name = "RANDOM"),
+                     "Popular" = list(name = "POPULAR"),
+                     "ALS" = list(name = "ALS",
+                                  param = list(n_factors = 40))
+                     #"ALS_implicit" = list(name = "ALS_implicit")
+                     )
+```
+
+
+## 9.2 RMSE
+
+As we can see from the graph below the Model with the best RMSE is the Popular algorithm. A close second is the ALS method followed by the SVD algorithm.
+
+```{r}
+r <- evaluate(e, 
+              Models_to_be, 
+              type = "ratings")# this gives estimated errors
+rec <- Recommender(data = getData(e,"train"),
+                              method = "IBCF",
+                              parameter = list(k = 30))#this is defualt
+rec
+class(rec)
+plot(r, ylim = c(0,3.25)) # RMSE
+```
+
+## 9.3 ROC and presicion recall curve
+
+Then from both the graphs below we can see that the popular algorithm out performs the others.
+
+```{r}
+Models_results <- evaluate(e,
+                      Models_to_be,
+                      #type = "topNList",
+                      n = c(1,3,5,10*1:10) #different values to generate top-N list
+                      )#it doesn't like this
+Models_results %>% str()
+#results_c$UBCF_C@results
+# results_c
+# names(results_c)
+#results_c[["UBCF_C"]]
+
+plot(Models_results, annotate=c(1,3), legend = "bottomright") #ROC curve
+plot(Models_results, "prec/rec", annotate = 3, legend = "bottomright") #precision recall curve
+```
+
+## 9.4 Other Comparisons
+
+Note from the last graph that as the number of recommendations increase the popular algorithm finds itself having less false negatives and a higher accuracy.
+
+```{r}
+avg_conf <- function(results) {
+  tmp <- results %>%
+    getConfusionMatrix()
+  as.data.frame(Reduce("+",tmp) / length(tmp))
+}
+#Models_avg %>% lapply(., avg_conf) %>% enframe() 
+Models_avg <- Models_results %>%
+  map(avg_conf) %>% 
+  enframe() %>% 
+  unnest(cols = value) %>% 
+  mutate("GBA" = sqrt(TPR*(1-FPR)),
+         n = as.factor(n)) 
+
+Models_avg
+
+ggplot(Models_avg, aes(x = FP, y = GBA, shape = name, color = n))+
+  geom_point()
+
+ggplot(Models_avg, aes(x = FP, y = (TPR + (1-FPR))/2, shape = name, color = n))+
+  geom_point()
+
+ggplot(Models_avg, aes(x = FN, y = GBA, shape = name, color = n))+
+  geom_point()
+
+ggplot(Models_avg, aes(x = FN, y = (TPR + (1-FPR))/2, shape = name, color = n))+
+  geom_point()
+```
+
+## 9.5 Best Model
+
+Looking at all our test it is obvious that from our data the popular algorithm beats the others easily. So that is the algorithm we will use in the next section on predictions
+
+# 10 how to predict
+
+```{r}
+rec_model <- Recommender(data = getData(e,"train"),
+                         method = "POPULAR")
+rec_model
+class(rec_model)
+```
+
+
+# 11 Conclusion
+
+
+# Building reco sys by splitting
+```{r}
+
+sampled_data<- sample(x = c(T, F),
+                      size = nrow(movie_ratings),
+                      replace = T,
+                      prob = c(0.8, 0.2))
+training_data <- movie_ratings[sampled_data, ]
+testing_data <- movie_ratings[!sampled_data, ]
+
+
+recommen_model <- Recommender(data = training_data,
+                              method = "IBCF",
+                              parameter = list(k = 30))#this is defualt
+recommen_model
+class(recommen_model)
+
+```
+
+
+
+# model exploring
+
+```{r model exploring}
+
+model_info <- getModel(recommen_model)
+class(model_info$sim)
+dim(model_info$sim)
+top_items <- 20
+image(model_info$sim[1:top_items, 1:top_items],
+      main = "Heatmap of the first rows and columns")
+
+sum_rows <- rowSums(model_info$sim > 0)
+#user has to have a movie that it is similar to 
+table(sum_rows) #does 447 users have 30 movies in common?
+
+
+#how many movies(y-axis) had sum_cols count views(or ratings)
+#for 20 movies there was 50 views(or cumulative ratings)
+sum_cols <- colSums(model_info$sim > 0)
+qplot(sum_cols, fill=I("steelblue"), col=I("red"))+ 
+  ggtitle("Distribution of the column count")
+
+```
+
+
+
+# predict
+```{r}
+
+top_recommendations <- 10 # the number of items to recommend to each user
+predicted_recommendations <- predict(object = recommen_model,
+                                     newdata = testing_data,
+                                     n = top_recommendations)
+predicted_recommendations
+
+p <- predict(object = Models_results$UBCF_C,
+             getData(e,"known"),type ="ratings")
+
+user1 <- predicted_recommendations@items[[1]] 
+# recommendation for the first user
+movies_user1 <- predicted_recommendations@itemLabels[user1]
+movies_user2 <- movies_user1
+for (index in 1:10){
+  movies_user2[index] <- as.character(
+    subset(movie_data,movie_data$movieId == movies_user1[index])$title)
+}
+movies_user2
+
+
+
+recommendation_matrix <- sapply(predicted_recommendations@items,
+                                function(x){ 
+                                  as.integer(colnames(movie_ratings)[x]) 
+                                }) 
+# matrix with the recommendations for each user
+#dim(recc_matrix)
+recommendation_matrix[,1:4]
+
+
+
+#first unspecified output
+number_of_items <- factor(table(recommendation_matrix))
+chart_title <- "Distribution of the Number of Items for IBCF"
+qplot(number_of_items, fill=I("steelblue"), col=I("red")) + 
+  ggtitle(chart_title)
+
+
+#second unspecified output
+number_of_items_sorted <- sort(number_of_items, decreasing = TRUE)
+number_of_items_top <- head(number_of_items_sorted, n = 4)
+table_top <- data.frame(as.integer(names(number_of_items_top)),
+                        number_of_items_top)
+for(i in 1:4) {
+  table_top[i,1] <- as.character(subset(movie_data,
+                                        movie_data$movieId == table_top[i,1])$title)
+}
+colnames(table_top) <- c("Movie Title", "No. of Items")
+table_top
+
+```
+
+
+
+

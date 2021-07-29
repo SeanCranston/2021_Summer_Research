@@ -25,4 +25,6 @@ https://stashable.blog/2019/11/09/recommendation-engine-with-r/#:~:text=Recommen
 
 https://marutitech.com/recommendation-engine-benefits/#:~:text=There%20are%20basically%20three%20important%20types%20of%20recommendation,filtering%202%20Content-Based%20Filtering%203%20Hybrid%20Recommendation%20Systems
 
+https://towardsdatascience.com/recommender-system-singular-value-decomposition-svd-truncated-svd-97096338f361#:~:text=Singular%20value%20decomposition%20%28SVD%29%20is%20a%20collaborative%20filtering,the%20SVD%20latent%20factor%20model%20for%20matrix%20factorization.
+
 

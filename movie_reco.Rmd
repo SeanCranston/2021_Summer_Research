@@ -2,7 +2,13 @@
 title: "movie_recommendation"
 author: "Sean Cranston"
 output: 
-  html_document
+  html_document:
+  toc: true
+  toc_float: true
+  toc_collapsed: true
+toc_depth: 3
+number_sections: true
+theme: lumen
 ---
 
 # 1 Introduction
@@ -142,8 +148,7 @@ str(ratingMatrix)
 #other representations of ratinMatrix
 dim(ratingMatrix)
 getRatingMatrix(ratingMatrix) %>% head()
-summary(movie_ratings@data) %>% head()
-#as(ratingMatrix,"list") %>% head()
+summary(ratingMatrix@data) %>% head() # how to you should visualize sparse matrix
 ```
 
 Note that our `ratingMatrix` is of class s4 which just means it has slots (those are the what the @ are in `str(ratingMatrix)`. For more information I welcome you to read <https://adv-r.hadley.nz/s4.html?q=s4#s4> which does a very good job at describing what its purpose in object orientating programming. Note that putting our `ratingMatrix` reduces the size of our object by (55,838,040-1,968,424)/55,838,040 or `r (55838040-1968424)/55838040`%. Which makes storing and using are data frame much more efficient. 
@@ -339,7 +344,7 @@ For each model the following parameters will be optimized:
 Model | # of Recommendations | Parameter | Method
 -|-|-|-
 IBCF | 1,5,10,15,20,25 | Similar Items (k): 1,5,10,20,30,40 | Cosine, Pearson
-UBCF | 1,5,10,15,20,25 | Nearest Neighbors (nn): 1,5,10,20,30,40 | Cosine, Pearson
+UBCF | 1,5,10,15,20,25 | Nearest Neighbors (nn): 1,5,10,20,30,40 | Cosine
 SVD | 1,5,10,15,20,25 | Item Subset (k): 1,5,10,20,30,40,100 | NA
 ALS | 1,5,10,15,20,25 | Latent Factors (k): 1,5,10,20,30,40 | Implicit, Explicit
 Popular| 1,5,10,15,20,25 | | NA
@@ -379,9 +384,11 @@ title("Precision-recall IBCF-Pearson")
 ```
 
 
-## 8.2 User Based Content Filtering (Cosine and Pearson)
+## 8.2 User Based Content Filtering (Cosine only)
 
 It is clear that UBCF with the Cosine similarity matrix is at its best with our data when nn = 1.
+
+Note that the blocked out code does not generate the UBCF pearson model. The problem could lie in that UBCF Pearson is not designed to be made from a sparse matrix.
 
 ```{r errors}
 #UBCF Cosine
@@ -400,18 +407,18 @@ plot(list_results, "prec/rec", annotate = 1, legend = "bottomright")
 title("Precision-recall IBCF-Cosine")
 
 #UBCF Pearson
-models_to_evaluate <- lapply(vector_k, function(k){
-  list(name = "UBCF", param = list(method = "pearson", nn = k))
-})
-names(models_to_evaluate) <- paste0("UBCF_nn_", vector_k)
-
-n_recommendations <- c(1, 5, 10, 15, 20, 25)
-list_results <- evaluate(x = e, method = models_to_evaluate, n = n_recommendations)
-
-plot(list_results, annotate = 1, legend = "topleft")
-title("ROC curve UBCF-Pearson")
-plot(list_results, "prec/rec", annotate = 1, legend = "bottomright")
-title("Precision-recall UBCF-Pearson")
+# models_to_evaluate <- lapply(vector_k, function(k){
+#   list(name = "UBCF", param = list(method = "pearson", nn = k))
+# })
+# names(models_to_evaluate) <- paste0("UBCF_nn_", vector_k)
+# 
+# n_recommendations <- c(1, 5, 10, 15, 20, 25)
+# list_results <- evaluate(x = e, method = models_to_evaluate, n = n_recommendations)
+# 
+# plot(list_results, annotate = 1, legend = "topleft")
+# title("ROC curve UBCF-Pearson")
+# plot(list_results, "prec/rec", annotate = 1, legend = "bottomright")
+# title("Precision-recall UBCF-Pearson")
 ```
 
 ## 8.3 Singular Value Decomposition
@@ -472,8 +479,8 @@ Models_to_be <- list("UBCF_C" = list(name = "UBCF",
                      "IBCF_C" = list(name = "IBCF",
                                      param = list(method = "cosine",
                                                   k = 40)),
-                     "UBCF_P" = list(name = "UBCF",#not working :(
-                                     param = list(method = "Pearson")),
+                     # "UBCF_P" = list(name = "UBCF",#not working :(
+                     #                 param = list(method = "Pearson")),
                      "IBCF_P" = list(name = "IBCF",
                                      param = list(method = "Pearson",
                                                   k = 30)),
@@ -680,7 +687,7 @@ https://rstudio-pubs-static.s3.amazonaws.com/276939_e571a5c526274fc688551066c058
 
 https://rpubs.com/dhairavc/639597
 
-
+And the manual for Recommenderlab which is attached to the github repository https://github.com/SeanCranston/2021_Summer_Research
 
 
 

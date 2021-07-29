@@ -563,6 +563,10 @@ Looking at all our test it is obvious that from our data the popular algorithm b
 
 # 10 how to predict
 
+## 10.1 Making a model
+
+At this time the `evaluate()` functions `keepModel` parameter doesn't seem to work. Thus we have to make our model again with the `Recommender()` function.
+
 ```{r}
 rec_model <- Recommender(data = getData(e,"train"),
                          method = "POPULAR")
@@ -570,71 +574,30 @@ rec_model
 class(rec_model)
 ```
 
+## 10.2 Model exploring
 
-# 11 Conclusion
-
-
-# Building reco sys by splitting
 ```{r}
-
-sampled_data<- sample(x = c(T, F),
-                      size = nrow(movie_ratings),
-                      replace = T,
-                      prob = c(0.8, 0.2))
-training_data <- movie_ratings[sampled_data, ]
-testing_data <- movie_ratings[!sampled_data, ]
-
-
-recommen_model <- Recommender(data = training_data,
-                              method = "IBCF",
-                              parameter = list(k = 30))#this is defualt
-recommen_model
-class(recommen_model)
-
+rec_model
+getModel(rec_model)
+s <- getModel(rec_model)
+s %>% str()
 ```
 
+## 10.3 Predicting
 
+### 10.3.1 Predicting for one user
 
-# model exploring
+using the model above we will predict 10 movies that the first user might like.
 
-```{r model exploring}
-
-model_info <- getModel(recommen_model)
-class(model_info$sim)
-dim(model_info$sim)
-top_items <- 20
-image(model_info$sim[1:top_items, 1:top_items],
-      main = "Heatmap of the first rows and columns")
-
-sum_rows <- rowSums(model_info$sim > 0)
-#user has to have a movie that it is similar to 
-table(sum_rows) #does 447 users have 30 movies in common?
-
-
-#how many movies(y-axis) had sum_cols count views(or ratings)
-#for 20 movies there was 50 views(or cumulative ratings)
-sum_cols <- colSums(model_info$sim > 0)
-qplot(sum_cols, fill=I("steelblue"), col=I("red"))+ 
-  ggtitle("Distribution of the column count")
-
-```
-
-
-
-# predict
 ```{r}
-
 top_recommendations <- 10 # the number of items to recommend to each user
-predicted_recommendations <- predict(object = recommen_model,
-                                     newdata = testing_data,
+predicted_recommendations <- predict(object = rec_model,
+                                     newdata = getData(e,"known"),
                                      n = top_recommendations)
 predicted_recommendations
 
-p <- predict(object = Models_results$UBCF_C,
-             getData(e,"known"),type ="ratings")
-
+# 10 recommendations for the first user
 user1 <- predicted_recommendations@items[[1]] 
-# recommendation for the first user
 movies_user1 <- predicted_recommendations@itemLabels[user1]
 movies_user2 <- movies_user1
 for (index in 1:10){
@@ -642,39 +605,85 @@ for (index in 1:10){
     subset(movie_data,movie_data$movieId == movies_user1[index])$title)
 }
 movies_user2
+```
 
+### 10.3.2 Predicting for multiple users
 
+Another way to go about this is to predict for mupliple users which is done by the code below.
 
+```{r}
+# matrix with the recommendations for each user
 recommendation_matrix <- sapply(predicted_recommendations@items,
                                 function(x){ 
                                   as.integer(colnames(movie_ratings)[x]) 
                                 }) 
-# matrix with the recommendations for each user
-#dim(recc_matrix)
 recommendation_matrix[,1:4]
-
-
-
-#first unspecified output
-number_of_items <- factor(table(recommendation_matrix))
-chart_title <- "Distribution of the Number of Items for IBCF"
-qplot(number_of_items, fill=I("steelblue"), col=I("red")) + 
-  ggtitle(chart_title)
-
-
-#second unspecified output
-number_of_items_sorted <- sort(number_of_items, decreasing = TRUE)
-number_of_items_top <- head(number_of_items_sorted, n = 4)
-table_top <- data.frame(as.integer(names(number_of_items_top)),
-                        number_of_items_top)
-for(i in 1:4) {
-  table_top[i,1] <- as.character(subset(movie_data,
-                                        movie_data$movieId == table_top[i,1])$title)
-}
-colnames(table_top) <- c("Movie Title", "No. of Items")
-table_top
-
 ```
+
+## 10.4 Distribution of predictions
+
+now we explore the most recommended movies.
+
+```{r}
+sort(table(recommendation_matrix),decreasing = T)
+number_of_items <- sort(table(recommendation_matrix),decreasing = T) %>% 
+  as_tibble() %>% 
+  filter(n > 50)
+ggplot(number_of_items,aes(x = recommendation_matrix, y = n), fill = "blues")+
+  geom_col(fill = "#00AFBB")+
+  xlab("Movie Index")+
+  ylab("Number of Times Recommended")+
+  ggtitle("Distribution of the Number of Items for Popular")+ 
+  theme_bw()+
+  theme(plot.title = element_text(hjust = .5))
+```
+
+## 10.5 Title and Number of recommendations
+
+As we can see from the data frame below those were popular movies back in there day, and movies like star wars still are popular, so it makes sense that the popular algorithm would recommend them.
+
+```{r}
+number_of_items
+
+for (i in 1:4) {
+  number_of_items[i,1] <- movie_data %>% 
+    filter(movieId == as.integer(number_of_items[i,1])) %>% 
+    select(title)
+}
+colnames(number_of_items) <- c("Movie Title", "No. of Items")
+number_of_items[1:4,]
+```
+
+
+# 11 Conclusion
+
+Our exploration of recommender systems used User-Based Collaborative Filtering (UBCF), Item-Based Collaborative Filtering (IBCF), Singular Value Decomposition, Alternating Least Squares, and the popular algorithm to select movies for the user to watch next. We determined that the Popular algorithm was the most accurate model, producing higher specificity for all ranges of n.
+
+The `Recommenderlab` package we relied on provides many more options for refining models, like Support Vector Machines. We were able to explore many of the package functions as a means of deepening our understanding of classification techniques and concepts. All the same, this small-scale study barely scratched the surface of this domain.
+
+# 12 References
+
+*Data Flair*
+https://data-flair.training/blogs/data-science-r-movie-recommendation/
+
+*Netflix top ten* 
+https://sifter.org/~simon/journal/20061211.html
+
+*Intro to sparse matrix formats*
+https://www.gormanalysis.com/blog/sparse-matrix-storage-formats/
+https://www.gormanalysis.com/blog/sparse-matrix-construction-and-use-in-r/
+
+*Maruti techlabs*
+https://marutitech.com/recommendation-engine-benefits/#:~:text=There%20are%20basically%20three%20important%20types%20of%20recommendation,filtering%202%20Content-Based%20Filtering%203%20Hybrid%20Recommendation%20Systems
+
+https://rstudio-pubs-static.s3.amazonaws.com/276939_e571a5c526274fc688551066c058841e.html#comparing-multiple-models
+
+https://rpubs.com/dhairavc/639597
+
+
+
+
+
 
 
 

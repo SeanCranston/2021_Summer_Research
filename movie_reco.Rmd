@@ -81,7 +81,7 @@ head(rating_data)
 ```
 
 
-## 3.2 cleaning genre matrix
+## 3.2 Cleaning genre matrix
 
 In this code chunk we want to clean the `movie_data` data frame. First we need to find all the different genres in our data set and put it into a vector string. We will use this vector to split the different genres for the same movies. From there we will create a new matrix called `genre` with column names labeled with the vector of genres. Then we will put `genre` in a for loop and indicate with a `1` whether a movie has a specific genre. Lastly we will bind the movies with the `genre` matrix for an easy reference. 
 

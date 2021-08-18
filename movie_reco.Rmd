@@ -63,14 +63,21 @@ library(lobstr)
 First we must download the data from <https://drive.google.com/file/d/1Dn1BZD3YxgBQJSIjbfNnmCFlDW2jdQGD/view> and save it to a desired location and put the full address in quotes. Or we could save the csv files to our working directory as done below.
 
 ```{r Data_import}
-movie_data <- read_csv("movies.csv",
-                       col_types = cols(
+# movie_data <- read_csv("movies.csv",
+#                        col_types = cols(
+#                          movieId = col_double(),
+#                          title = col_character(),
+#                          genres = col_character()
+#                        ))
+# head(movie_data)
+movie_data <- read_csv("https://raw.githubusercontent.com/SeanCranston/2021_Summer_Research/master/Data/movies.csv",
+              col_types = cols(
                          movieId = col_double(),
                          title = col_character(),
                          genres = col_character()
                        ))
 head(movie_data)
-rating_data <- read_csv("ratings.csv",
+rating_data <- read_csv("https://raw.githubusercontent.com/SeanCranston/2021_Summer_Research/master/Data/ratings.csv",
                         col_types = cols(
                           userId = col_double(),
                           movieId = col_double(),

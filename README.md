@@ -5,7 +5,7 @@ This undergraduate research project was conducted by Sean Cranston under the sup
 of Dr. Mengshi Zhou at St. Cloud State University. After deciding to do our study on
 Movie Recommenders we looked at many different articles on the topic. Next we began to study
 the r packages manuals. In particular, we spent a great deal of time studying the recommenderlab
-package. Through the different articles we explored how to preprocess data, visualize data, 
+package. Through the different articles and manuals we explored how to preprocess data, visualize data, 
 fit many models, hyperparameter
  optimization, cross-validation, model comparison, ROC curves, Precision-Recall curves, 
  and compare with random selection. 

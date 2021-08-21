@@ -1,35 +1,35 @@
 ---
-title: "movie_recommendation"
+title: "Movie Recommendation"
 author: "Sean Cranston"
 output: 
   html_document:
-  toc: true
-  toc_float: true
-  toc_collapsed: true
-toc_depth: 3
-number_sections: true
-theme: lumen
+    toc: true
+    toc_float: true
+    toc_collapsed: true
+    toc_depth: 3
+    number_sections: true
+    theme: lumen
 ---
 
 # 1 Introduction
 
 ## 1.1 Recommendation engines, What are they good for?
 
-Recommendation engines are a subclass of information filtering. The goal of a recommendation engine is to assist the user - like a consumer - in discovering information that is relevant to them. For example, <http://google.com> uses a recommendation engine. After you search something, those links are the top recommendations that the algorithm gives to the user. And Recommendations are not just for Google. They can be found in online marketing, online dating, book and music recommendations, and a plethora of other areas. For this article we will be focusing on movie recommendations. For instance, think of Netflix. How does it recommend its large movie base to its even larger costumer base? This will be the question we investigate throughout this article.
+Recommendation engines are a subclass of information filtering. The goal of a recommendation engine is to assist the user - like a consumer - in discovering information that is relevant to them. For example, <http://google.com> uses a recommendation engine. After you search something, those links are the top recommendations that the algorithm gives to the user. And Recommendations are not just for Google. They can be found in online marketing, online dating, book and music recommendations, and a plethora of other areas. For this article we will be focusing on movie recommendations. For instance, think of Netflix. How does it recommend movies from its large movie database to its even larger costumer base? This will be the question we investigate throughout this article.
 
 ## 1.2 Difference between algorithms
 
-For this study we will be looking at 9 different recommendation algorithms. they are (along with a brief description):
+For this study we will be looking at 9 different recommendation algorithms. They are (along with a brief description):
 
 * __User-Based Content filtering Cosine(UBCF_C):__ Items are recommended assuming that similar users will rate items similarly. Based on a Cosine similarity matrix from a matrix that has movies as columns and users as rows.
 
-* __Item-Based Content Filtering Cosine(IBCF_C):__ Items are recommended assuming that they will prefer other items which are similar to items they like. Based on the same matrix from UBCD_C.
+* __Item-Based Content Filtering Cosine(IBCF_C):__ Items are recommended assuming that they will prefer other items which are similar to items they like. Based on the same similarity matrix from UBCD_C.
 
 * __User-Based Content filtering Pearson(UBCF_P):__ The idea with UBCF_P is the same as UBCF_C. But instead of using the cosine similarity matrix, we use the Pearson similarity matrix.
 
 * __Item-Based Content Filtering Pearson(IBCF_P):__ The idea with IBCF_P is the same as IBCF_C. But instead of using the cosine similarity matrix, we use the Pearson similarity matrix.
 
-* __Singular Value Decomposition (SVD):__ SVD is a factorization of a real matrix. It then extract the latent factors and used the latent factor matrix to make recommendations.
+* __Singular Value Decomposition (SVD):__ SVD is a factorization of a real matrix. It then extract the latent factors and uses the latent factor matrix to make recommendations.
 
 * __Popular:__ This method simply recommends based on item/movie popularity.
 
@@ -46,11 +46,13 @@ We obtained our data from IBMT, Which is an online database of information relat
 
 # 3 Data preprocessing
 
-In our analysis we will make use of 4 packages *tidyverse, data.table, reshape2,lobstr, and recommenderlab*. 
+In our analysis we will make use of 5 packages *tidyverse, data.table, reshape2,lobstr, and recommenderlab*. 
 
 
 ```{r setup}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE,
+                      warning = F,
+                      message = F)
 library(tidyverse)                   
 library(data.table)
 library(reshape2)
@@ -60,16 +62,9 @@ library(lobstr)
 
 ## 3.1 Data importing
 
-First we must download the data from <https://drive.google.com/file/d/1Dn1BZD3YxgBQJSIjbfNnmCFlDW2jdQGD/view> and save it to a desired location and put the full address in quotes. Or we could save the csv files to our working directory as done below.
+You could save the data from <https://drive.google.com/file/d/1Dn1BZD3YxgBQJSIjbfNnmCFlDW2jdQGD/view> and then upload it from the save location. But for this analysis, to ease the Reproducibility, we save the data on the github page <https://github.com/SeanCranston/2021_Summer_Research> under the Data folder. This way we don't have to download and save the file. We can just put in the URL to get the data (this does download it but is not permanently save on your computer).  
 
 ```{r Data_import}
-# movie_data <- read_csv("movies.csv",
-#                        col_types = cols(
-#                          movieId = col_double(),
-#                          title = col_character(),
-#                          genres = col_character()
-#                        ))
-# head(movie_data)
 movie_data <- read_csv("https://raw.githubusercontent.com/SeanCranston/2021_Summer_Research/master/Data/movies.csv",
               col_types = cols(
                          movieId = col_double(),
@@ -154,7 +149,7 @@ str(ratingMatrix)
 
 #other representations of ratinMatrix
 dim(ratingMatrix)
-getRatingMatrix(ratingMatrix) %>% head()
+#getRatingMatrix(ratingMatrix) %>% head() #too long
 summary(ratingMatrix@data) %>% head() # how to you should visualize sparse matrix
 ```
 
@@ -170,26 +165,34 @@ unique movies: `r dim(ratingMatrix)[2]`
 
 ## 4.2 similar matrix of 100 users based on users
 
+Below in the matrix, each row and column represents an user. We took ten users and found how similar they are by using the Cosine similarity matrix method. For visualizations we also added a colored plot.
+
 ```{r}
-similarity_mat <- similarity(ratingMatrix[1:100 ], #get 100 users 
+similarity_mat <- similarity(ratingMatrix[1:10, ], #get 10 users 
                              method = "cosine",
                              which = "users") %>%  #similar based on user
   as.matrix()
+similarity_mat
 image(similarity_mat, main = "User's Similarities")
 
 ```
 
 ## 4.3 similar matrix of 100 users based on item
 
+Similar to the above matrix, in the matrix below each row and column represents an item. We took ten items and found how similar they are by using the Cosine similarity matrix method. For visualizations we also added a colored plot.
+
 ```{r}
-movie_similarity <- similarity(ratingMatrix[, 1:100],
+movie_similarity <- similarity(ratingMatrix[,1:10],
                                method = "cosine",
                                which = "items") %>%  #similar based on movie
     as.matrix()
+movie_similarity
 image(movie_similarity, main = "Movies similarity")
 ```
 
 ## 4.4 distribution of ratings
+
+Below is a table and two graphs. The main thing to notice here is that most movies do not have a rating. That is, we are working with very sparse data.
 
 ```{r}
 table_of_ratings <- as.vector(ratingMatrix@data) %>% 
@@ -209,6 +212,7 @@ ggplot(ratings[-c(1),],
 
 ## 4.5 Most Popular Movies
 
+For fun we can explore which movies are the most popular in our data set. To do that we just count the number of views (ratings) a movie has and then organize them in a user friendly table and graph as shown below.
 
 ```{r}
 table_view <- ratingMatrix %>% 
@@ -236,6 +240,9 @@ ggplot(table_view[1:6,], aes(x = title, y = views))+
 
 
 ## 4.6 Heatmap of first 25 rows and columns
+
+The heat map below is another visual to show us how sparse our data is. Note that each row is a user and each column is a movie with the rating being the colored box.
+
 ```{r}
 # Heatmap of movie ratings
 image(ratingMatrix[1:25,1:25], 
@@ -260,35 +267,35 @@ dim(ratingMatrix) #got rid of a lot of movies
 ```
 
 ## 5.2 visualizing reduced matrix
-From the above output of `movie_ratings`, we observe that there are 420 users and 447 films as opposed to the previous 668 users and 10325 films. We can now observe our matrix of relevant users as follows 
+From the above output of `movie_ratings`, we observe that there are 420 users and 447 films as opposed to the previous 668 users and 10325 films. We can now observe our matrix of relevant users as follows:
 
 ```{r}
 minimum_movies<- quantile(rowCounts(movie_ratings), 0.98)
 # 98th percentile of how many movies a user rated
-minimum_users <- quantile(colCounts(movie_ratings), 0.98)
+minimum_users <- quantile(colCounts(movie_ratings), 0.999)
 image(movie_ratings[rowCounts(movie_ratings) > minimum_movies,
-                    #we only want users that rated more movies than the lower 98%
+                    #we only want users that rated more movies than the lower 999%
                     colCounts(movie_ratings) > minimum_users],
       main = "Heatmap of the top users and movies")
 ```
 
-Where we are looking at the users how rated the most movies vs the movies that where rated the most.
+Where we are looking at the users who rated the most movies vs the movies that where rated the most.
 
 Next we can look at the distribution of the average rating per user.
 
 ```{r}
 average_ratings <- rowMeans(movie_ratings)
-qplot(average_ratings, fill=I("steelblue"), col=I("red")) +
+qplot(average_ratings, fill=I("steelblue"), col=I("white")) +
     ggtitle("Distribution of the average rating per user")
 ```
 
 ## 5.3 Data Normalization
 
-We want to have normalized data because not everyone rates the same way. For example, we could have a happy user who rates all movies between 4 and 5 stars. Compared to a mean user who might never rate a movie higher than a 3. We want to normalize the ratings by row/user to eliminate this rating bias.
+We want to have normalized data because not everyone rates the same way. For example, we could have a happy user who rates all movies between 4 and 5 stars. Compared to a mean user who might never rate a movie higher than a 3. Normalizing our data will allow us to compare the mean and friendly raters without bias.
 
 ```{r}
 normalized_ratings <- normalize(movie_ratings)
-sum(rowMeans(normalized_ratings) > 0.00001)
+sum(rowMeans(normalized_ratings) > 0.1)
 
 image(normalized_ratings[rowCounts(normalized_ratings) > minimum_movies,
                          colCounts(normalized_ratings) > minimum_users],
@@ -301,9 +308,9 @@ image(normalized_ratings[rowCounts(normalized_ratings) > minimum_movies,
 Instead of normalizing the data we could pick our own threshold to determine which movie gets a 0 or 1. For instance, we could set a threshold at 3 such that when a movie is rated a 3 or lower it gets a new rating of 0 and if higher than 3 it gets a new rating of 1.
 
 ```{r}
-binary_minimum_movies <- quantile(rowCounts(movie_ratings), 0.95)
-#I think they changed this to .95 so their would be more white spaces
-binary_minimum_users <- quantile(colCounts(movie_ratings), 0.95)
+binary_minimum_movies <- quantile(rowCounts(movie_ratings), 0.98)
+#I think they changed this to .98 so their would be more white spaces
+binary_minimum_users <- quantile(colCounts(movie_ratings), 0.999)
 #movies_watched <- binarize(movie_ratings, minRating = 1)
 good_rated_films <- binarize(movie_ratings, minRating = 3)
 image(good_rated_films[rowCounts(movie_ratings) > binary_minimum_movies,
@@ -333,7 +340,7 @@ lapply(recommendation_model, "[[", "description")
 
 # 7 setup scheme
 
-We will be using ten fold cross validation. where the data is split into 3 sub data frames, and then each sub data frame is used to calculate a model. Then the final model is averaged by all the models from each sub data frame. 
+We will be using 3 fold cross validation. where the data is split into 3 sub data frames, and then each sub data frame is used to calculate a model. Then the final model is averaged by all the models from each sub data frame. 
 
 ```{r}
 e <-  evaluationScheme(movie_ratings, #evaluate will normalize for us
@@ -479,6 +486,8 @@ The Popular algorithm doesn't have any parameters to compare, so there is no cod
 
 ## 9.1 Models with parameters
 
+When comparing different models in *recommenderlab* (and maybe r) we can put them in a list. This allows us to compare models with ease.
+
 ```{r}
 Models_to_be <- list("UBCF_C" = list(name = "UBCF", 
                                      param = list(method = "cosine",
@@ -540,7 +549,9 @@ plot(Models_results, "prec/rec", annotate = 3, legend = "bottomright") #precisio
 
 ## 9.4 Other Comparisons
 
-Note from the last graph that as the number of recommendations increase the popular algorithm finds itself having less false negatives and a higher accuracy.
+Note from the last graph that as the number of recommendations increase the popular algorithm finds itself having less false negatives and a higher accuracy. 
+
+Then from the graph below note that as Accuarcy ((TPR+(1-FPR))/2) goes up FP also increases. But the Popular model rate of increase far exceeds that of how much the FP is growing compared to other models.
 
 ```{r}
 avg_conf <- function(results) {
@@ -553,22 +564,21 @@ Models_avg <- Models_results %>%
   map(avg_conf) %>% 
   enframe() %>% 
   unnest(cols = value) %>% 
-  mutate("GBA" = sqrt(TPR*(1-FPR)),
-         n = as.factor(n)) 
+  mutate(n = as.factor(n)) 
 
 Models_avg
 
-ggplot(Models_avg, aes(x = FP, y = GBA, shape = name, color = n))+
-  geom_point()
+# ggplot(Models_avg, aes(x = FP, y = GBA, shape = name, color = n))+
+#   geom_point()
 
 ggplot(Models_avg, aes(x = FP, y = (TPR + (1-FPR))/2, shape = name, color = n))+
   geom_point()
-
-ggplot(Models_avg, aes(x = FN, y = GBA, shape = name, color = n))+
-  geom_point()
-
-ggplot(Models_avg, aes(x = FN, y = (TPR + (1-FPR))/2, shape = name, color = n))+
-  geom_point()
+# 
+# ggplot(Models_avg, aes(x = FN, y = GBA, shape = name, color = n))+
+#   geom_point()
+# 
+# ggplot(Models_avg, aes(x = FN, y = (TPR + (1-FPR))/2, shape = name, color = n))+
+#   geom_point()
 ```
 
 ## 9.5 Best Model
@@ -619,6 +629,7 @@ for (index in 1:10){
     subset(movie_data,movie_data$movieId == movies_user1[index])$title)
 }
 movies_user2
+
 ```
 
 ### 10.3.2 Predicting for multiple users
@@ -668,6 +679,11 @@ colnames(number_of_items) <- c("Movie Title", "No. of Items")
 number_of_items[1:4,]
 ```
 
+Note that we initially made recommendations for 140 users and "The Usual Suspects" and "Shawshank Redemption" was recommended 139 times! This is something that can easily become a big problem in how we recommend movies. For Example, if we always recommend the top movies how do we know if the movies that not many people have seen are actually very good movies?
+
+## 10.6 Try the app
+
+To play around with the different models and how they make predictions go to <https://sean-cranston.shinyapps.io/Movie_recommender/>, a shiny app that will allow the user to get a feel for what type of predictions we can expect.
 
 # 11 Conclusion
 
@@ -695,10 +711,6 @@ https://rstudio-pubs-static.s3.amazonaws.com/276939_e571a5c526274fc688551066c058
 https://rpubs.com/dhairavc/639597
 
 And the manual for Recommenderlab which is attached to the github repository https://github.com/SeanCranston/2021_Summer_Research
-
-
-
-
 
 
 

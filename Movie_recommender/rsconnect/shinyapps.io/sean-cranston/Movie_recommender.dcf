@@ -5,8 +5,8 @@ account: sean-cranston
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 4519600
-bundleId: 4948912
+bundleId: 5002536
 url: https://sean-cranston.shinyapps.io/Movie_recommender/
-when: 1629572503.80663
+when: 1630869657.24351
 asMultiple: FALSE
 asStatic: FALSE

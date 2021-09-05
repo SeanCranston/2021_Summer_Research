@@ -1,5 +1,5 @@
 ---
-title: "Movie Recommendation"
+title: "Using machine learning algorithms to build artificial intelligence-based movie recommendation systems"
 author: "Sean Cranston"
 output: 
   html_document:
@@ -11,23 +11,31 @@ output:
     theme: lumen
 ---
 
-# 1 Introduction
+# Acknowledgements
 
-## 1.1 Recommendation engines, What are they good for?
+This paper and the research behind it would never have happened without the support of my supervisor, Dr. Mengshi Zhou, and Lois Schindler, the person who introduced me to Dr. Zhou. Without Dr. Zhou's enthusiasm, knowledge and willingness to work with me, this research paper would have never happened. And without the support of Lois, this research opportunity would have never crossed my desk. Dr. Zhou and Lois have been a great pillar of support and I am grateful for them.
 
-Recommendation engines are a subclass of information filtering. The goal of a recommendation engine is to assist the user - like a consumer - in discovering information that is relevant to them. For example, <http://google.com> uses a recommendation engine. After you search something, those links are the top recommendations that the algorithm gives to the user. And Recommendations are not just for Google. They can be found in online marketing, online dating, book and music recommendations, and a plethora of other areas. For this article we will be focusing on movie recommendations. For instance, think of Netflix. How does it recommend movies from its large movie database to its even larger costumer base? This will be the question we investigate throughout this article.
+# Introduction
 
-## 1.2 Difference between algorithms
+## Recommendation engines
+
+The fast development of internet technology has led to the explosive growth of available data in the past few years. However, the huge amount of data is often an obstacle to finding relevant information due to the present of spam data or erroneous information.  
+
+Recommendation systems can solve the information overload problem by guiding people towards the information according to their preferences. The goal of a recommendation engine is to assist the user - like a consumer - in discovering information that is relevant to them. For example, <http://google.com> uses a recommendation engine. After you search something, those links are the top recommendations that the algorithm gives to the user. And Recommendations are not just for Google. They can be found in online marketing, online dating, book and music recommendations, and a plethora of other areas. For this article we will be focusing on movie recommendations. Due to the COVID-19 pandemic, consumers relied on video-streaming service such as Netflix and Disney+. For instance, think of Netflix. How does it recommend movies from its large movie database to its even larger costumer base? This will be the question we investigate throughout this article.
+
+In this study, we investigate the performance of different recommendation algorithms on a commonly used movie recommendation dataset. We then build an artificial intelligence (AI)-based recommendation using the algorithm with the best performance. Finally we develop a shiny app for our AI-based recommendation engine.
+
+## Machine learning algorithms fo recommendation engines
 
 For this study we will be looking at 9 different recommendation algorithms. They are (along with a brief description):
 
-* __User-Based Content filtering Cosine(UBCF_C):__ Items are recommended assuming that similar users will rate items similarly. Based on a Cosine similarity matrix from a matrix that has movies as columns and users as rows.
+* __User-Based Content filtering Cosine (UBCF_C):__ Items are recommended assuming that similar users will rate items similarly. Based on a Cosine similarity matrix from a matrix that has movies as columns and users as rows.
 
-* __Item-Based Content Filtering Cosine(IBCF_C):__ Items are recommended assuming that they will prefer other items which are similar to items they like. Based on the same similarity matrix from UBCD_C.
+* __Item-Based Content Filtering Cosine (IBCF_C):__ Items are recommended assuming that they will prefer other items which are similar to items they like. Based on the same similarity matrix from UBCD_C.
 
-* __User-Based Content filtering Pearson(UBCF_P):__ The idea with UBCF_P is the same as UBCF_C. But instead of using the cosine similarity matrix, we use the Pearson similarity matrix.
+* __User-Based Content filtering Pearson (UBCF_P):__ The idea with UBCF_P is the same as UBCF_C. But instead of using the cosine similarity matrix, we use the Pearson similarity matrix.
 
-* __Item-Based Content Filtering Pearson(IBCF_P):__ The idea with IBCF_P is the same as IBCF_C. But instead of using the cosine similarity matrix, we use the Pearson similarity matrix.
+* __Item-Based Content Filtering Pearson (IBCF_P):__ The idea with IBCF_P is the same as IBCF_C. But instead of using the cosine similarity matrix, we use the Pearson similarity matrix.
 
 * __Singular Value Decomposition (SVD):__ SVD is a factorization of a real matrix. It then extract the latent factors and uses the latent factor matrix to make recommendations.
 
@@ -40,11 +48,11 @@ For this study we will be looking at 9 different recommendation algorithms. They
 * __Random:__ Produce random recommendations (so we have a baseline to judge the other models with).
 
 
-# 2 Data description
+# Data description
 
-We obtained our data from IBMT, Which is an online database of information related to television programs, home videos, video games, and more importantly for us  films. The data can be obtained from <https://drive.google.com/file/d/1Dn1BZD3YxgBQJSIjbfNnmCFlDW2jdQGD/view>. In there are two data frames. One is a key comprising of a movie ID and the title of the unique movie that goes to that ID including the genre associated with the movie. The other data frame is the data we will be doing our analysis on, which comprises of userID, MovieID and the rating the user gave to the movie. 
+We obtained our data from IBMT, Which is an online database of information related to television programs, home videos, video games, and more importantly for us  films. The data can be obtained from <https://drive.google.com/file/d/1Dn1BZD3YxgBQJSIjbfNnmCFlDW2jdQGD/view>. There are two data frames. One is a key comprising of a movie ID and the title of the unique movie that goes to that ID including the genre associated with the movie. The other data frame is the data we will be doing our analysis on, which comprises of userID, MovieID and the rating the user gave to the movie. 
 
-# 3 Data preprocessing
+# Data preprocessing
 
 In our analysis we will make use of 5 packages *tidyverse, data.table, reshape2,lobstr, and recommenderlab*. 
 
@@ -60,9 +68,9 @@ library(recommenderlab)
 library(lobstr)
 ```
 
-## 3.1 Data importing
+## Data importing
 
-You could save the data from <https://drive.google.com/file/d/1Dn1BZD3YxgBQJSIjbfNnmCFlDW2jdQGD/view> and then upload it from the save location. But for this analysis, to ease the Reproducibility, we save the data on the github page <https://github.com/SeanCranston/2021_Summer_Research> under the Data folder. This way we don't have to download and save the file. We can just put in the URL to get the data (this does download it but is not permanently save on your computer).  
+You could save the data from <https://drive.google.com/file/d/1Dn1BZD3YxgBQJSIjbfNnmCFlDW2jdQGD/view> and then upload it from the save location. But for this analysis, to ease the Reproducibility, we save the data on the github page <https://github.com/SeanCranston/2021_Summer_Research> under the Data folder. This way we don't have to download and save the file. We can just put in the URL to get the data (it does download to a temp file but is not permanent).  
 
 ```{r Data_import}
 movie_data <- read_csv("https://raw.githubusercontent.com/SeanCranston/2021_Summer_Research/master/Data/movies.csv",
@@ -83,9 +91,9 @@ head(rating_data)
 ```
 
 
-## 3.2 Cleaning genre matrix
+## Cleaning genre matrix
 
-In this code chunk we want to clean the `movie_data` data frame. First we need to find all the different genres in our data set and put it into a vector string. We will use this vector to split the different genres for the same movies. From there we will create a new matrix called `genre` with column names labeled with the vector of genres. Then we will put `genre` in a for loop and indicate with a `1` whether a movie has a specific genre. Lastly we will bind the movies with the `genre` matrix for an easy reference. 
+In this code chunk we want to clean the `movie_data` data frame. First, we need to find all the different genres in our data set and put it into a vector string. We will use this vector to split the different genres for the same movies. From there we will create a new matrix called `genre` with column names labeled with the vector of genres. Then we will put `genre` in a for loop and indicate with a `1` whether a movie has a specific genre. Lastly, we will bind the movies with the `genre` matrix for an easy reference. 
 
 ```{r genre_matrix}
 # different genres
@@ -118,9 +126,9 @@ head(SearchMatrix, 10)
 
 So from here we have a matrix that has the movie and the genre as variables. A better to have a matrix for computations.
 
-## 3.3 Cleaning rating matrix
+## Cleaning rating matrix
 
-As of right now we have our `rating_data` in the format of where each row comprises of a user, movie and a rating. `rating_data` also contains a timestamp column, but we will ignore that for this analysis. What we want is the data to be in the format where each row is a user, each column is a movie, and the entry for each user movie pair is a rating. In order to accomplish this we use *reshape2* `dcast()` function. Next we delete the userID column since the row index is the same number as that column. From here we have a huge matrix with 668 rows (users) and 10325 movies. Note that most of the rating entries are also NA (not rated), we will show this is the case in our data visualization section, though it can be see by the size of the different matrices. 
+As of right now we have our `rating_data` in the format of where each row comprises of a user, movie, and a rating. `rating_data` also contains a timestamp column, but we will ignore that for this analysis. What we want is the data to be in the format where each row is a user, each column is a movie, and the entry for each user movie pair is a rating. In order to accomplish this we use *reshape2* `dcast()` function. Next, we delete the userID column since the row index is the same number as that column. From here we have a huge matrix with 668 rows (users) and 10325 movies. Note that most of the rating entries are also NA (not rated), we will show this is the case in our data visualization section, though it can be seen by the size of the different matrices. 
 
 ```{r rating_matrix}
 # change to user vs movie matrix with rating as the entry
@@ -149,21 +157,20 @@ str(ratingMatrix)
 
 #other representations of ratinMatrix
 dim(ratingMatrix)
-#getRatingMatrix(ratingMatrix) %>% head() #too long
-summary(ratingMatrix@data) %>% head() # how to you should visualize sparse matrix
+#summary(ratingMatrix@data) %>% head() # how to you should visualize sparse matrix
 ```
 
 Note that our `ratingMatrix` is of class s4 which just means it has slots (those are the what the @ are in `str(ratingMatrix)`. For more information I welcome you to read <https://adv-r.hadley.nz/s4.html?q=s4#s4> which does a very good job at describing what its purpose in object orientating programming. Note that putting our `ratingMatrix` reduces the size of our object by (55,838,040-1,968,424)/55,838,040 or `r (55838040-1968424)/55838040`%. Which makes storing and using are data frame much more efficient. 
 
-# 4 Data Visualization
+# Data Visualization
 
-## 4.1 How many unique users/movies
+## How many unique users/movies
 
 unique users: `r dim(ratingMatrix)[1]`
 
 unique movies: `r dim(ratingMatrix)[2]`
 
-## 4.2 similar matrix of 100 users based on users
+## similar matrix of 100 users based on users
 
 Below in the matrix, each row and column represents an user. We took ten users and found how similar they are by using the Cosine similarity matrix method. For visualizations we also added a colored plot.
 
@@ -177,7 +184,7 @@ image(similarity_mat, main = "User's Similarities")
 
 ```
 
-## 4.3 similar matrix of 100 users based on item
+## similar matrix of 100 users based on item
 
 Similar to the above matrix, in the matrix below each row and column represents an item. We took ten items and found how similar they are by using the Cosine similarity matrix method. For visualizations we also added a colored plot.
 
@@ -190,7 +197,7 @@ movie_similarity
 image(movie_similarity, main = "Movies similarity")
 ```
 
-## 4.4 distribution of ratings
+## distribution of ratings
 
 Below is a table and two graphs. The main thing to notice here is that most movies do not have a rating. That is, we are working with very sparse data.
 
@@ -210,7 +217,7 @@ ggplot(ratings[-c(1),],
   geom_col()
 ```
 
-## 4.5 Most Popular Movies
+## Most Popular Movies
 
 For fun we can explore which movies are the most popular in our data set. To do that we just count the number of views (ratings) a movie has and then organize them in a user friendly table and graph as shown below.
 
@@ -239,7 +246,7 @@ ggplot(table_view[1:6,], aes(x = title, y = views))+
 
 
 
-## 4.6 Heatmap of first 25 rows and columns
+## Heatmap of first 25 rows and columns
 
 The heat map below is another visual to show us how sparse our data is. Note that each row is a user and each column is a movie with the rating being the colored box.
 
@@ -251,11 +258,11 @@ image(ratingMatrix[1:25,1:25],
 
 ```
 
-# 5 Data Preparation
+# Data Preparation
 
 As we could see from section 4.4, there are many unrated movies by users. To make computations easier it is best practice to pick the movies and users with a certain threshold to be used in our model. For instance if a movie only has one rating it would be hard to recommend that movie to others. likewise if a user only rates one movie it would be hard to build a profile for that user. For those reasons we make it a requirement for our data that each user must rate more than 50 movies and each movie we include in our data set will need to be rated by more than 50 people
 
-## 5.1 reducing `ratingMatrix`
+## reducing `ratingMatrix`
 
 We reduce our matrix by getting rid of the users that rated fewer that 50 movies and movies that were rated by fewer than 50 users.
 
@@ -266,13 +273,13 @@ dim(movie_ratings)
 dim(ratingMatrix) #got rid of a lot of movies
 ```
 
-## 5.2 visualizing reduced matrix
+## visualizing reduced matrix
 From the above output of `movie_ratings`, we observe that there are 420 users and 447 films as opposed to the previous 668 users and 10325 films. We can now observe our matrix of relevant users as follows:
 
 ```{r}
 minimum_movies<- quantile(rowCounts(movie_ratings), 0.98)
 # 98th percentile of how many movies a user rated
-minimum_users <- quantile(colCounts(movie_ratings), 0.999)
+minimum_users <- quantile(colCounts(movie_ratings), 0.98)
 image(movie_ratings[rowCounts(movie_ratings) > minimum_movies,
                     #we only want users that rated more movies than the lower 999%
                     colCounts(movie_ratings) > minimum_users],
@@ -281,7 +288,7 @@ image(movie_ratings[rowCounts(movie_ratings) > minimum_movies,
 
 Where we are looking at the users who rated the most movies vs the movies that where rated the most.
 
-Next we can look at the distribution of the average rating per user.
+Next, we can look at the distribution of the average rating per user.
 
 ```{r}
 average_ratings <- rowMeans(movie_ratings)
@@ -289,7 +296,7 @@ qplot(average_ratings, fill=I("steelblue"), col=I("white")) +
     ggtitle("Distribution of the average rating per user")
 ```
 
-## 5.3 Data Normalization
+## Data Normalization
 
 We want to have normalized data because not everyone rates the same way. For example, we could have a happy user who rates all movies between 4 and 5 stars. Compared to a mean user who might never rate a movie higher than a 3. Normalizing our data will allow us to compare the mean and friendly raters without bias.
 
@@ -303,14 +310,14 @@ image(normalized_ratings[rowCounts(normalized_ratings) > minimum_movies,
 
 ```
 
-## 5.4 Data Binarization
+## Data Binarization
 
 Instead of normalizing the data we could pick our own threshold to determine which movie gets a 0 or 1. For instance, we could set a threshold at 3 such that when a movie is rated a 3 or lower it gets a new rating of 0 and if higher than 3 it gets a new rating of 1.
 
 ```{r}
 binary_minimum_movies <- quantile(rowCounts(movie_ratings), 0.98)
 #I think they changed this to .98 so their would be more white spaces
-binary_minimum_users <- quantile(colCounts(movie_ratings), 0.999)
+binary_minimum_users <- quantile(colCounts(movie_ratings), 0.98)
 #movies_watched <- binarize(movie_ratings, minRating = 1)
 good_rated_films <- binarize(movie_ratings, minRating = 3)
 image(good_rated_films[rowCounts(movie_ratings) > binary_minimum_movies,
@@ -318,11 +325,11 @@ image(good_rated_films[rowCounts(movie_ratings) > binary_minimum_movies,
       main = "Heatmap of the top users and movies")
 ```
 
-## 5.5 Quick Note
+## Quick Note
 
 It is best to use Normalization and binarization together. That is, we want to normalize each row and then binarize the data by row. However, the package *recommenderlab* does this for us so we don't need to worry about writing the code.
 
-# 6 adjusting parameters/options in *recommenderlab*
+# A list of machine learning models in *recommenderlab*
 
 ```{r model_options}
 # Model options
@@ -338,9 +345,9 @@ lapply(recommendation_model, "[[", "description")
 # recommenderRegistry$get_entries(dataType = "realRatingMatrix")
 ```
 
-# 7 setup scheme
+# setup scheme
 
-We will be using 3 fold cross validation. where the data is split into 3 sub data frames, and then each sub data frame is used to calculate a model. Then the final model is averaged by all the models from each sub data frame. 
+We will be using 3-fold cross validation. where the data is split into 3 sub data frames, and then each sub data frame is used to calculate a model. Then the final model is averaged by all the models from each sub data frame. 
 
 ```{r}
 e <-  evaluationScheme(movie_ratings, #evaluate will normalize for us
@@ -351,7 +358,9 @@ e <-  evaluationScheme(movie_ratings, #evaluate will normalize for us
 e
 ```
 
-# 8 Model Parameter Optimization
+# Model Parameter Optimization
+
+In order to provide a complete picture of the performance of each algorithm, we performed the 3-fold cross-validation for different parameter combinations. The parameters were then tuned for optimal performance using Precision-Recall (PR) curves and receiver operating characteristic (ROC) curves. 
 
 For each model the following parameters will be optimized:
 
@@ -363,7 +372,7 @@ SVD | 1,5,10,15,20,25 | Item Subset (k): 1,5,10,20,30,40,100 | NA
 ALS | 1,5,10,15,20,25 | Latent Factors (k): 1,5,10,20,30,40 | Implicit, Explicit
 Popular| 1,5,10,15,20,25 | | NA
 
-## 8.1 Item Based Content Filtering (Cosine and Pearson)
+## Item Based Content Filtering (Cosine and Pearson)
 
 For the Cosine method we will use k = 40 since it has the greatest area under the curve. Then for the Pearson method we will use k = 30 since it is consistently one of the best models in the ROC curve and the precision recall curve.
 
@@ -398,13 +407,13 @@ title("Precision-recall IBCF-Pearson")
 ```
 
 
-## 8.2 User Based Content Filtering (Cosine only)
+## User Based Content Filtering (Cosine only)
 
-It is clear that UBCF with the Cosine similarity matrix is at its best with our data when nn = 1.
+UBCF with the Cosine similarity matrix is at its best with our data when nn = 1.
 
-Note that the blocked out code does not generate the UBCF pearson model. The problem could lie in that UBCF Pearson is not designed to be made from a sparse matrix.
+Note that the blocked-out code does not generate the UBCF Pearson model. The problem could lie in that UBCF Pearson is not designed to be made from a sparse matrix.
 
-```{r errors}
+```{r}
 #UBCF Cosine
 vector_k <- c(1, 5, 10, 20, 30, 40)
 models_to_evaluate <- lapply(vector_k, function(k){
@@ -435,7 +444,7 @@ title("Precision-recall IBCF-Cosine")
 # title("Precision-recall UBCF-Pearson")
 ```
 
-## 8.3 Singular Value Decomposition
+## Singular Value Decomposition
 
 It appears that when k = 10, or we have 10 item subsets, SVD is at its best.
 
@@ -457,7 +466,7 @@ plot(list_results, "prec/rec", annotate = 1, legend = "bottomright")
 title("Precision-recall SVD")
 ```
 
-## 8.4 Alternating Least Squares
+## Alternating Least Squares
 
 When n = 40, ALS performs its best.
 
@@ -478,13 +487,13 @@ plot(list_results, "prec/rec", annotate = 1, legend = "bottomright")
 title("Precision-recall ALS")
 ```
 
-## 8.5 Popular
+## Popular
 
 The Popular algorithm doesn't have any parameters to compare, so there is no code and graphs to show here.
 
-# 9 Model Comparison
+# Model Comparison
 
-## 9.1 Models with parameters
+## Models with parameters
 
 When comparing different models in *recommenderlab* (and maybe r) we can put them in a list. This allows us to compare models with ease.
 
@@ -511,7 +520,7 @@ Models_to_be <- list("UBCF_C" = list(name = "UBCF",
 ```
 
 
-## 9.2 RMSE
+## RMSE
 
 As we can see from the graph below the Model with the best RMSE is the Popular algorithm. A close second is the ALS method followed by the SVD algorithm.
 
@@ -527,7 +536,7 @@ class(rec)
 plot(r, ylim = c(0,3.25)) # RMSE
 ```
 
-## 9.3 ROC and presicion recall curve
+## ROC and precision recall curve
 
 Then from both the graphs below we can see that the popular algorithm out performs the others.
 
@@ -537,21 +546,16 @@ Models_results <- evaluate(e,
                       #type = "topNList",
                       n = c(1,3,5,10*1:10) #different values to generate top-N list
                       )#it doesn't like this
-Models_results %>% str()
-#results_c$UBCF_C@results
-# results_c
-# names(results_c)
-#results_c[["UBCF_C"]]
 
 plot(Models_results, annotate=c(1,3), legend = "bottomright") #ROC curve
 plot(Models_results, "prec/rec", annotate = 3, legend = "bottomright") #precision recall curve
 ```
 
-## 9.4 Other Comparisons
+## Other Comparisons
 
 Note from the last graph that as the number of recommendations increase the popular algorithm finds itself having less false negatives and a higher accuracy. 
 
-Then from the graph below note that as Accuarcy ((TPR+(1-FPR))/2) goes up FP also increases. But the Popular model rate of increase far exceeds that of how much the FP is growing compared to other models.
+Then from the graph below note that as Accuracy ((TPR+(1-FPR))/2) goes up FP also increases. But the Popular model rate of increase far exceeds that of how much the FP is growing compared to other models.
 
 ```{r}
 avg_conf <- function(results) {
@@ -559,7 +563,7 @@ avg_conf <- function(results) {
     getConfusionMatrix()
   as.data.frame(Reduce("+",tmp) / length(tmp))
 }
-#Models_avg %>% lapply(., avg_conf) %>% enframe() 
+
 Models_avg <- Models_results %>%
   map(avg_conf) %>% 
   enframe() %>% 
@@ -568,26 +572,18 @@ Models_avg <- Models_results %>%
 
 Models_avg
 
-# ggplot(Models_avg, aes(x = FP, y = GBA, shape = name, color = n))+
-#   geom_point()
-
 ggplot(Models_avg, aes(x = FP, y = (TPR + (1-FPR))/2, shape = name, color = n))+
   geom_point()
-# 
-# ggplot(Models_avg, aes(x = FN, y = GBA, shape = name, color = n))+
-#   geom_point()
-# 
-# ggplot(Models_avg, aes(x = FN, y = (TPR + (1-FPR))/2, shape = name, color = n))+
-#   geom_point()
+
 ```
 
-## 9.5 Best Model
+## Best Model
 
 Looking at all our test it is obvious that from our data the popular algorithm beats the others easily. So that is the algorithm we will use in the next section on predictions
 
-# 10 how to predict
+# Recommended movies for a new user using the best algorithm
 
-## 10.1 Making a model
+## Making a model
 
 At this time the `evaluate()` functions `keepModel` parameter doesn't seem to work. Thus we have to make our model again with the `Recommender()` function.
 
@@ -598,7 +594,7 @@ rec_model
 class(rec_model)
 ```
 
-## 10.2 Model exploring
+## Model exploring
 
 ```{r}
 rec_model
@@ -607,9 +603,9 @@ s <- getModel(rec_model)
 s %>% str()
 ```
 
-## 10.3 Predicting
+## Predicting
 
-### 10.3.1 Predicting for one user
+### Predicting for one user
 
 using the model above we will predict 10 movies that the first user might like.
 
@@ -632,9 +628,9 @@ movies_user2
 
 ```
 
-### 10.3.2 Predicting for multiple users
+### Predicting for multiple users
 
-Another way to go about this is to predict for mupliple users which is done by the code below.
+Another way to go about this is to predict for multiple users which is done by the code below.
 
 ```{r}
 # matrix with the recommendations for each user
@@ -645,7 +641,7 @@ recommendation_matrix <- sapply(predicted_recommendations@items,
 recommendation_matrix[,1:4]
 ```
 
-## 10.4 Distribution of predictions
+## Distribution of predictions
 
 now we explore the most recommended movies.
 
@@ -663,9 +659,9 @@ ggplot(number_of_items,aes(x = recommendation_matrix, y = n), fill = "blues")+
   theme(plot.title = element_text(hjust = .5))
 ```
 
-## 10.5 Title and Number of recommendations
+## Title and Number of recommendations
 
-As we can see from the data frame below those were popular movies back in there day, and movies like star wars still are popular, so it makes sense that the popular algorithm would recommend them.
+As we can see from the data frame below those were popular movies back in there day, and movies like Star Wars still are popular, so it makes sense that the popular algorithm would recommend them.
 
 ```{r}
 number_of_items
@@ -679,19 +675,25 @@ colnames(number_of_items) <- c("Movie Title", "No. of Items")
 number_of_items[1:4,]
 ```
 
-Note that we initially made recommendations for 140 users and "The Usual Suspects" and "Shawshank Redemption" was recommended 139 times! This is something that can easily become a big problem in how we recommend movies. For Example, if we always recommend the top movies how do we know if the movies that not many people have seen are actually very good movies?
+Note that we initially made recommendations for 140 users and "Schindler's List (1993)" and "Godfather, The (1972)" was recommended 139 times! This is something that can easily become a big problem in how we recommend movies. For Example, if we always recommend the top movies how do we know if the movies that not many people have seen are actually very good movies?
 
-## 10.6 Try the app
+## Try the app
 
 To play around with the different models and how they make predictions go to <https://sean-cranston.shinyapps.io/Movie_recommender/>, a shiny app that will allow the user to get a feel for what type of predictions we can expect.
 
-# 11 Conclusion
+# Conclusion
 
 Our exploration of recommender systems used User-Based Collaborative Filtering (UBCF), Item-Based Collaborative Filtering (IBCF), Singular Value Decomposition, Alternating Least Squares, and the popular algorithm to select movies for the user to watch next. We determined that the Popular algorithm was the most accurate model, producing higher specificity for all ranges of n.
 
 The `Recommenderlab` package we relied on provides many more options for refining models, like Support Vector Machines. We were able to explore many of the package functions as a means of deepening our understanding of classification techniques and concepts. All the same, this small-scale study barely scratched the surface of this domain.
 
-# 12 References
+# References
+
+*Funding*
+NSF Grant Managed by Lois Schindler
+
+*Advisor*
+Dr. Mengshi Zhou
 
 *Data Flair*
 https://data-flair.training/blogs/data-science-r-movie-recommendation/

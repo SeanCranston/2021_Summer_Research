@@ -1,0 +1,10 @@
+name: Publish Document
+title:
+username:
+account: rpubs
+server: rpubs.com
+hostUrl: rpubs.com
+appId: https://api.rpubs.com/api/v1/document/794641/2717f2b557f840d7afb808e4b477c04f
+bundleId: https://api.rpubs.com/api/v1/document/794641/2717f2b557f840d7afb808e4b477c04f
+url: http://rpubs.com/Sean_Cranston/794641
+when: 1630868777.3946
